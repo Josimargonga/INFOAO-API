@@ -13,7 +13,142 @@ datasource db {
   provider = "postgresql"
 }
 
-model category {
-  id   Int    @id @default(autoincrement())
-  name String @unique
+model categoria {
+  id        Int        @id @default(autoincrement())
+  nome      String
+  slug      String     @unique
+
+  processos Processo[]
+
+  @@map("categoria")
+}
+
+model Processo {
+  id               Int                 @id @default(autoincrement())
+  categoriaId      Int
+  titulo           String
+  descricaoGeral   String              @db.Text
+
+  categoria        categoria           @relation(fields: [categoriaId], references: [id])
+  variantes        VarianteProcesso[]
+
+  @@map("processo")
+}
+
+model Instituicao {
+  id              Int                 @id @default(autoincrement())
+  nome            String
+  tipo            InstitutionType
+  websiteOficial  String?
+
+  variantes       VarianteProcesso[]
+
+  @@map("instituicao")
+}
+
+model VarianteProcesso {
+  id              Int       @id @default(autoincrement())
+  processoId      Int
+  instituicaoId   Int
+
+  tempoEstimado   String
+  custoBaseKz     Decimal   @db.Decimal(10,2)
+
+  processo        Processo      @relation(fields: [processoId], references: [id])
+  instituicao     Instituicao   @relation(fields: [instituicaoId], references: [id])
+
+  requisitos      Requisito[]
+  locais          LocalAtendimento[]
+  feedbacks       FeedbackProcesso[]
+
+  @@map("variante_processo")
+}
+
+model Requisito {
+  id               Int    @id @default(autoincrement())
+  varianteId       Int
+  documentoNome    String
+  obrigatorio      Boolean
+  notasRequisito   String? @db.Text
+
+  variante         VarianteProcesso @relation(fields: [varianteId], references: [id])
+
+  @@map("requisito")
+}
+
+model LocalAtendimento {
+  id                 Int    @id @default(autoincrement())
+  varianteId         Int
+
+  nomeBalcao         String
+  provincia          String
+  municipio          String
+  enderecoDetalhado  String @db.Text
+  coordenadasGps     String?
+  horarioFuncionamento String?
+
+  variante           VarianteProcesso @relation(fields: [varianteId], references: [id])
+
+  @@map("local_atendimento")
+}
+
+model Usuario {
+  id          Int      @id @default(autoincrement())
+  nome        String
+  email       String   @unique
+  senhaHash   String
+  reputacao   Int      @default(0)
+  criadoEm    DateTime @default(now())
+
+  feedbacks   FeedbackProcesso[]
+
+  @@map("usuario")
+}
+
+model FeedbackProcesso {
+  id          Int      @id @default(autoincrement())
+  varianteId  Int
+  usuarioId   Int?
+
+  tipoFeedback String
+  mensagem     String   @db.Text
+  status       FeedbackStatus
+  criadoEm     DateTime @default(now())
+
+  variante      VarianteProcesso @relation(fields: [varianteId], references: [id])
+  usuario       Usuario?         @relation(fields: [usuarioId], references: [id])
+
+  @@map("feedback_processo")
+}
+
+
+model Provincia {
+  id         Int         @id @default(autoincrement())
+  nome       String
+
+  municipios Municipio[]
+
+  @@map("provincia")
+}
+
+model Municipio {
+  id           Int      @id @default(autoincrement())
+  provinciaId  Int
+  nome         String
+
+  provincia    Provincia @relation(fields: [provinciaId], references: [id])
+
+  @@map("municipio")
+}
+
+enum InstitutionType {
+  PUBLICA
+  PRIVADA
+  MISTA
+}
+
+enum FeedbackStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
 }
